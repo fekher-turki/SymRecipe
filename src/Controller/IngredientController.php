@@ -42,7 +42,7 @@ class IngredientController extends AbstractController
     }
 
     /**
-     * this controller show a form which create an ingredient
+     * this controller create an ingredient
      *
      * @param Request $request
      * @param EntityManagerInterface $manager
@@ -65,7 +65,7 @@ class IngredientController extends AbstractController
 
             $this->addFlash(
                 'success',
-                'Votre ingrédient a été crée avec succès !'
+                'Votre ingrédient a été créé avec succès !'
             );
 
             return $this->redirectToRoute('ingredient.index');
@@ -76,6 +76,15 @@ class IngredientController extends AbstractController
         ]);
     }
 
+    /**
+     * this controller update an ingredient
+     *
+     * @param IngredientRepository $repository
+     * @param integer $id
+     * @param Request $request
+     * @param EntityManagerInterface $manager
+     * @return Response
+     */
     #[Route('/ingredient/edition/{id}', 'ingredient.edit', methods: ['GET', 'POST'])]
     public function edit(
         IngredientRepository $repository,
@@ -106,6 +115,14 @@ class IngredientController extends AbstractController
         ]);
     }
 
+    /**
+     * this controller delete an ingredient
+     *
+     * @param IngredientRepository $repository
+     * @param integer $id
+     * @param EntityManagerInterface $manager
+     * @return Response
+     */
     #[Route('/ingredient/suppression/{id}', 'ingredient.delete', methods: ['GET'])]
     public function delete(
         IngredientRepository $repository,
