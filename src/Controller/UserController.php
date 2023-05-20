@@ -72,13 +72,23 @@ class UserController extends AbstractController
         ]);
     }
 
+    /**
+     * this controller update a user's password
+     *
+     * @param UserRepository $repository
+     * @param integer $id
+     * @param EntityManagerInterface $manager
+     * @param UserPasswordHasherInterface $hasher
+     * @param Request $request
+     * @return Response
+     */
     #[Route('/utilisateur/edition-mot-de-passe/{id}', 'user.edit.password', methods: ['GET', 'POST'])]
     public function editPassword(
         UserRepository $repository,
         int $id,
         EntityManagerInterface $manager,
-        Request $request,
         UserPasswordHasherInterface $hasher,
+        Request $request,
     ): Response {
         $user = $repository->findOneBy(["id" => $id]);
 
@@ -95,13 +105,9 @@ class UserController extends AbstractController
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             if ($hasher->isPasswordValid($user, $form->getData()['plainPassword'])) {
-                // $user->setPlainPassword(
-                $user->setPassword(
-                    // $form->getData()['newPassword']
-                    $hasher->hashPassword(
-                        $user,
-                        $form->getData()['newPassword']
-                    )
+                $user->setUpdatedAt(new \DateTimeImmutable());
+                $user->setPlainPassword(
+                    $form->getData()['newPassword']
                 );
 
                 $this->addFlash(
@@ -113,7 +119,7 @@ class UserController extends AbstractController
                 $manager->flush();
 
                 return $this->redirectToRoute('recipe.index');
-            }else{
+            } else {
                 $this->addFlash(
                     'warning',
                     'Le mot de passe renseigné est incorrect.'
