@@ -5,10 +5,10 @@ namespace App\Controller;
 use App\Entity\Ingredient;
 use App\Form\IngredientType;
 use App\Repository\IngredientRepository;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\Entity;
 use Knp\Component\Pager\PaginatorInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -18,12 +18,8 @@ class IngredientController extends AbstractController
 {
     /**
      * This controller display all ingredients
-     *
-     * @param IngredientRepository $repository
-     * @param PaginatorInterface $paginator
-     * @param Request $request
-     * @return Response
      */
+    #[IsGranted('ROLE_USER')]
     #[Route('/ingredient', name: 'ingredient.index', methods: ['GET'])]
     public function index(
         IngredientRepository $repository,
@@ -31,7 +27,7 @@ class IngredientController extends AbstractController
         Request $request
     ): Response {
         $ingredients = $paginator->paginate(
-            $repository->findAll(),
+            $repository->findBy(['user' => $this->getUser()]),
             $request->query->getInt('page', 1),
             10
         );
@@ -43,22 +39,18 @@ class IngredientController extends AbstractController
 
     /**
      * this controller create an ingredient
-     *
-     * @param Request $request
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[IsGranted('ROLE_USER')]
     #[Route('/ingredient/nouveau', 'ingredient.new', methods: ['GET', 'POST'])]
-    public function new(
-        Request $request,
-        EntityManagerInterface $manager
-    ): Response {
+    public function new(Request $request, EntityManagerInterface $manager): Response
+    {
         $ingredient = new Ingredient();
         $form = $this->createForm(IngredientType::class, $ingredient);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $ingredient = $form->getData();
+            $ingredient->setUser($this->getUser());
 
             $manager->persist($ingredient);
             $manager->flush();
@@ -78,21 +70,14 @@ class IngredientController extends AbstractController
 
     /**
      * this controller update an ingredient
-     *
-     * @param IngredientRepository $repository
-     * @param integer $id
-     * @param Request $request
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[Security("is_granted('ROLE_USER') and user === ingredient.getUser()")]
     #[Route('/ingredient/edition/{id}', 'ingredient.edit', methods: ['GET', 'POST'])]
     public function edit(
-        IngredientRepository $repository,
-        int $id,
+        Ingredient $ingredient,
         Request $request,
         EntityManagerInterface $manager
     ): Response {
-        $ingredient = $repository->findOneBy(["id" => $id]);
         $form = $this->createForm(IngredientType::class, $ingredient);
 
         $form->handleRequest($request);
@@ -117,19 +102,11 @@ class IngredientController extends AbstractController
 
     /**
      * this controller delete an ingredient
-     *
-     * @param IngredientRepository $repository
-     * @param integer $id
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[Security("is_granted('ROLE_USER') and user === ingredient.getUser()")]
     #[Route('/ingredient/suppression/{id}', 'ingredient.delete', methods: ['GET'])]
-    public function delete(
-        IngredientRepository $repository,
-        int $id,
-        EntityManagerInterface $manager
-    ): Response {
-        $ingredient = $repository->findOneBy(["id" => $id]);
+    public function delete(Ingredient $ingredient, EntityManagerInterface $manager): Response
+    {
         if (!$ingredient) {
             $this->addFlash(
                 'warning',

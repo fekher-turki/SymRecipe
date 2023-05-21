@@ -7,6 +7,8 @@ use App\Form\RecipeType;
 use App\Repository\RecipeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,14 +16,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class RecipeController extends AbstractController
 {
-    /**
+    /** 
      * This controller display all recipes
-     *
-     * @param RecipeRepository $repository
-     * @param PaginatorInterface $paginator
-     * @param Request $request
-     * @return Response
      */
+    #[IsGranted('ROLE_USER')]
     #[Route('/recette', name: 'recipe.index', methods: ['GET'])]
     public function index(
         RecipeRepository $repository,
@@ -29,7 +27,7 @@ class RecipeController extends AbstractController
         Request $request
     ): Response {
         $recipes = $paginator->paginate(
-            $repository->findAll(),
+            $repository->findBy(['user' => $this->getUser()]),
             $request->query->getInt('page', 1),
             10
         );
@@ -40,23 +38,18 @@ class RecipeController extends AbstractController
 
     /**
      * this controller create a recipe
-     *
-     * @param Request $request
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[IsGranted('ROLE_USER')]
     #[Route('/recette/nouveau', name: 'recipe.new', methods: ['GET', 'POST'])]
-    public function new(
-        Request $request,
-        EntityManagerInterface $manager
-    ): Response
+    public function new(Request $request, EntityManagerInterface $manager): Response
     {
         $recipe = new Recipe();
         $form = $this->createForm(RecipeType::class, $recipe);
 
         $form->handleRequest($request);
-        if($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid()) {
             $recipe = $form->getData();
+            $recipe->setUser($this->getUser());
 
             $manager->persist($recipe);
             $manager->flush();
@@ -67,7 +60,6 @@ class RecipeController extends AbstractController
             );
 
             return $this->redirectToRoute('recipe.index');
-            
         }
 
         return $this->render('pages/recipe/new.html.twig', [
@@ -77,26 +69,20 @@ class RecipeController extends AbstractController
 
     /**
      * this controller update a recipe
-     *
-     * @param IngredientRepository $repository
-     * @param integer $id
-     * @param Request $request
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[Security("is_granted('ROLE_USER') and user === recipe.getUser()")]
     #[Route('/recette/edition/{id}', 'recipe.edit', methods: ['GET', 'POST'])]
     public function edit(
-        RecipeRepository $repository,
-        int $id,
+        Recipe $recipe,
         Request $request,
         EntityManagerInterface $manager
     ): Response {
-        $recipe = $repository->findOneBy(["id" => $id]);
         $form = $this->createForm(RecipeType::class, $recipe);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $recipe = $form->getData();
+            $recipe->setUser($this->getUser());
 
             $manager->persist($recipe);
             $manager->flush();
@@ -116,19 +102,11 @@ class RecipeController extends AbstractController
 
     /**
      * this controller delete a recipe
-     *
-     * @param RecipeRepository $repository
-     * @param integer $id
-     * @param EntityManagerInterface $manager
-     * @return Response
      */
+    #[Security("is_granted('ROLE_USER') and user === recipe.getUser()")]
     #[Route('/recette/suppression/{id}', 'recipe.delete', methods: ['GET'])]
-    public function delete(
-        RecipeRepository $repository,
-        int $id,
-        EntityManagerInterface $manager
-    ): Response {
-        $recipe = $repository->findOneBy(["id" => $id]);
+    public function delete(Recipe $recipe, EntityManagerInterface $manager): Response
+    {
         if (!$recipe) {
             $this->addFlash(
                 'warning',
