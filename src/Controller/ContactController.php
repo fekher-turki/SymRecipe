@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Contact;
 use App\Form\ContactType;
+use App\Service\MailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,7 @@ class ContactController extends AbstractController
     public function index(
         Request $request,
         EntityManagerInterface $manager,
-        MailerInterface $mailer
+        MailService $mailService
     ): Response {
         $contact = new Contact();
 
@@ -36,19 +37,14 @@ class ContactController extends AbstractController
 
             $manager->flush();
 
-            $email = (new TemplatedEmail())
-                ->from($contact->getEmail())
-                ->to('admin@symrecipe.com')
-                ->subject($contact->getSubject())
-                ->html($contact->getMessage())
+            //Email
+            $mailService->sendEmail(
+                $contact->getEmail(),
+                $contact->getSubject(),
+                'emails/contact.html.twig',
+                ['contact' => $contact]
 
-                ->htmlTemplate('emails/contact.html.twig')
-
-                ->context([
-                    'contact' => $contact
-                ]);
-
-            $mailer->send($email);
+            );
 
             $this->addFlash(
                 'success',
