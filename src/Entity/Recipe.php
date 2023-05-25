@@ -72,7 +72,7 @@ class Recipe
     #[Assert\NotNull()]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToMany(targetEntity: ingredient::class)]
+    #[ORM\ManyToMany(targetEntity: Ingredient::class)]
     private Collection $ingredients;
 
     #[ORM\ManyToOne(inversedBy: 'recipes')]
